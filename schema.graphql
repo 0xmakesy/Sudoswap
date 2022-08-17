@@ -1,0 +1,210 @@
+type NewPair @entity {
+  id: ID!
+  address: String
+  owner: String
+  blockNumber: BigInt
+  createdAt: BigInt
+  updatedAt: BigInt
+  createdTx: String
+  nft: String
+  initialBondingCurveAddress: String
+  initialAssetRecipient: String
+  poolType: BigInt
+  initialDelta: BigInt
+  initialFee: BigInt
+  initialSpotPrice: BigInt!
+  initialNFTIdInventory: [BigInt!]
+  initialInventoryCount: BigInt
+  pair: Pair @derivedFrom(field:"initialAttributes")
+}
+
+type Pair @entity {
+  id: ID!
+  owner: String
+  createdTx: String
+  createdAt: BigInt
+  updatedAt: BigInt
+  nft: String
+  bondingCurveAddress: String
+  assetRecipient: String
+  poolType: BigInt
+  delta: BigInt
+  fee: BigInt
+  spotPrice: BigInt
+  nftIdInventory: [BigInt!]
+  inventoryCount: BigInt
+  initialAttributes: NewPair
+}
+
+type ETHPairPrices @entity {
+  id: ID!
+  nftContract: String
+  minSpotAsk: BigInt
+  maxSpotBid: BigInt
+}
+
+type Swap @entity {
+  id: ID!
+  nft: String
+  pair: String!
+  txHash: String
+  nftIds: String
+  maxCost: BigInt
+  ethPrice: BigInt!
+  approxPairFee: BigInt!
+  approxProtocolFee: BigDecimal!
+  approxPairRevenue: BigDecimal!
+  swapTx: SwapETHForSpecificNFT
+}
+
+type SwapETHForSpecificNFT @entity {
+  id: ID!
+  swaps: [Swap!] @derivedFrom(field: "swapTx")
+  nftCount: Int
+  collectionCount: Int
+  ethRecipient: Bytes
+  nftRecipient: Bytes
+  totalETHSpent: BigInt
+  timestamp: BigInt
+}
+
+type DailyETHPoolStat @entity {
+  id: ID!
+  dayTimestamp: BigInt
+  dayString: String
+  nftContract: String
+  erc20Contract: String
+  numSwaps: BigInt
+  swapVolumeETH: BigInt
+  approxPoolFees: BigInt
+  approxProtocolFees: BigDecimal
+  approxPoolRevenue: BigDecimal
+  ethDeposited: BigInt
+  ethWithdrawn: BigInt
+  nftsDeposited: BigInt
+  nftsWithdrawn: BigInt
+}
+
+type DailyETHPairStat @entity {
+  id: ID!
+  pair: String
+  dayTimestamp: BigInt
+  dayString: String
+  nftContract: String
+  erc20Contract: String
+  numSwaps: BigInt
+  swapVolumeETH: BigInt
+  approxPairFees: BigInt
+  approxProtocolFees: BigDecimal
+  approxPairRevenue: BigDecimal
+  ethDeposited: BigInt
+  ethWithdrawn: BigInt
+  nftsDeposited: BigInt
+  nftsWithdrawn: BigInt
+  minSpotAsk: BigInt
+  maxSpotBid: BigInt
+}
+
+type DailyETHProtocolStat @entity {
+  id: ID!
+  dayTimestamp: BigInt
+  dayString: String
+  numSwaps: BigInt
+  swapVolumeETH: BigInt
+  approxPoolFees: BigInt
+  approxProtocolFees: BigDecimal
+  approxPoolRevenue: BigDecimal
+  ethDeposited: BigInt
+  ethWithdrawn: BigInt
+  numPoolsCreated: BigInt
+  numPairsCreated: BigInt
+  nftsDeposited: BigInt
+  nftsWithdrawn: BigInt
+}
+
+type Transfer @entity {
+  id: ID!
+  to: String
+  from: String
+  amount: BigInt
+  tokenContract: String
+  tokenType: String
+}
+
+type BondingCurveStatusUpdate @entity {
+  id: ID!
+  allowed: String
+  address: String
+}
+
+type AssetRecipientChange @entity {
+  id: ID!
+  a: Bytes! # address
+  pair: String
+  timestamp: BigInt
+}
+
+type DeltaUpdate @entity {
+  id: ID!
+  newDelta: BigInt! # uint128
+  pair: String
+  timestamp: BigInt
+}
+
+type FeeUpdate @entity {
+  id: ID!
+  newFee: BigInt! # uint96
+  pair: String
+  timestamp: BigInt
+}
+
+type NFTWithdrawal @entity {
+  id: ID!
+  pair: String
+  timestamp: BigInt
+}
+
+type OwnershipTransferred @entity {
+  id: ID!
+  newOwner: Bytes! # address
+  pair: String
+  timestamp: BigInt
+}
+
+type SpotPriceUpdate @entity {
+  id: ID!
+  newSpotPrice: BigInt! # uint128
+  updateTx: String
+  nft: String
+  pair: String
+  blockNumber: BigInt
+  timestamp: BigInt
+}
+
+type SwapNFTInPair @entity {
+  id: ID!
+  ethPaidByPool: BigInt
+  pair: String
+  timestamp: BigInt
+}
+
+type SwapNFTOutPair @entity {
+  id: ID!
+  ethReceivedByPool: BigInt
+  pair: String
+  timestamp: BigInt
+}
+
+type TokenDeposit @entity {
+  id: ID!
+  amount: BigInt! # uint256
+  pair: String
+  timestamp: BigInt
+}
+
+type TokenWithdrawal @entity {
+  id: ID!
+  amount: BigInt! # uint256
+  pair: String
+  timestamp: BigInt
+}

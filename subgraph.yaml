@@ -1,0 +1,122 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: LSSVMPairFactory
+    network: mainnet
+    source:
+      address: "0xb16c1342E617A5B6E4b631EB114483FDB289c0A4"
+      abi: LSSVMPairFactory
+      startBlock: 14645793
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - BondingCurveStatusUpdate
+        - CallTargetStatusUpdate
+        - NFTDeposit
+        - NewPair
+        - OwnershipTransferred
+        - ProtocolFeeMultiplierUpdate
+        - ProtocolFeeRecipientUpdate
+        - RouterStatusUpdate
+        - TokenDeposit
+      abis:
+        - name: LSSVMPairFactory
+          file: ./abis/LSSVMPairFactory.json
+      eventHandlers:
+        - event: BondingCurveStatusUpdate(address,bool)
+          handler: handleBondingCurveStatusUpdate
+        - event: CallTargetStatusUpdate(address,bool)
+          handler: handleCallTargetStatusUpdate
+        - event: NFTDeposit(address)
+          handler: handleNFTDeposit
+        - event: NewPair(address)
+          handler: handleNewPairEvent
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: ProtocolFeeMultiplierUpdate(uint256)
+          handler: handleProtocolFeeMultiplierUpdate
+        - event: ProtocolFeeRecipientUpdate(address)
+          handler: handleProtocolFeeRecipientUpdate
+        - event: RouterStatusUpdate(address,bool)
+          handler: handleRouterStatusUpdate
+        - event: TokenDeposit(address)
+          handler: handleTokenDeposit
+      callHandlers:
+        - function: createPairETH(address,address,address,uint8,uint128,uint96,uint128,uint256[])
+          handler: handleCreatePairETH
+      file: ./src/lssvm-pair-factory.ts
+  - kind: ethereum/contract
+    name: LSSVMRouter
+    network: mainnet
+    source:
+      address: "0x2B2e8cDA09bBA9660dCA5cB6233787738Ad68329"
+      abi: LSSVMRouter
+      startBlock: 14645815
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - SwapETHForSpecificNFT
+        - CreatePair
+        - Swap
+      abis:
+        - name: LSSVMRouter
+          file: ./abis/LSSVMRouter.json
+      callHandlers:
+        - function: swapETHForSpecificNFTs((address,uint256[])[],address,address,uint256)
+          handler: handleSwapETHForSpecificNFTs
+        - function: robustSwapETHForSpecificNFTs(((address,uint256[]),uint256)[],address,address,uint256)
+          handler: handleRobustSwapETHForSpecificNFTs
+      file: ./src/lssvm-router.ts
+templates:
+  - kind: ethereum
+    name: LSSVMPairEnumerableETH
+    network: mainnet
+    source:
+      abi: LSSVMPairEnumerableETH
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - AssetRecipientChange
+        - DeltaUpdate
+        - FeeUpdate
+        - NFTWithdrawal
+        - OwnershipTransferred
+        - SpotPriceUpdate
+        - SwapNFTInPair
+        - SwapNFTOutPair
+        - TokenDeposit
+        - TokenWithdrawal
+        - Transfer
+      abis:
+        - name: LSSVMPairEnumerableETH
+          file: ./abis/LSSVMPairEnumerableETH.json
+      eventHandlers:
+        - event: AssetRecipientChange(address)
+          handler: handleAssetRecipientChange
+        - event: DeltaUpdate(uint128)
+          handler: handleDeltaUpdate
+        - event: FeeUpdate(uint96)
+          handler: handleFeeUpdate
+        - event: NFTWithdrawal()
+          handler: handleNFTWithdrawal
+        - event: OwnershipTransferred(indexed address)
+          handler: handleOwnershipTransferred
+        - event: SpotPriceUpdate(uint128)
+          handler: handleSpotPriceUpdate
+        - event: SwapNFTInPair()
+          handler: handleSwapNFTInPair
+        - event: SwapNFTOutPair()
+          handler: handleSwapNFTOutPair
+        - event: TokenDeposit(uint256)
+          handler: handleTokenDeposit
+        - event: TokenWithdrawal(uint256)
+          handler: handleTokenWithdrawal
+      file: ./src/lssvm-pair-enumerable-eth.ts

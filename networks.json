@@ -1,0 +1,13 @@
+{
+  "mainnet": {
+    "LSSVMPairFactory": {
+      "address": "0xb16c1342E617A5B6E4b631EB114483FDB289c0A4"
+    },
+    "LSSVMPairEnumerableETH": {
+      "address": "0x08CE97807A81896E85841d74FB7E7B065ab3ef05"
+    },
+    "LSSVMRouter": {
+      "address": "0x2B2e8cDA09bBA9660dCA5cB6233787738Ad68329"
+    }
+  }
+}
