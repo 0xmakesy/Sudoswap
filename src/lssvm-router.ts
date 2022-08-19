@@ -1,14 +1,8 @@
+/** No longer needed now that we're using contract events rather than call handlers for performance
 import { BigDecimal, BigInt } from "@graphprotocol/graph-ts"
 import { SwapETHForSpecificNFTsCall, RobustSwapETHForSpecificNFTsCall } from "../generated/LSSVMRouter/LSSVMRouter"
 import { SwapETHForSpecificNFT, Swap, DailyETHPairStat, DailyETHPoolStat, DailyETHProtocolStat, Pair, NewPair } from "../generated/schema"
 import { plusBigDecimal, plusBigInt, timesBigDecimal, minusBigDecimal, returnNonNullBigInt } from "./utilities"
-
-/* 
-    TODO:
-        handle robustSwapETHForSpecificNFTsAndNFTsToToken
-        refactor
-        replace pair values in beginning of function if not populated yet
-*/
 
 export function handleSwapETHForSpecificNFTs(call: SwapETHForSpecificNFTsCall): void {
     let transaction = new SwapETHForSpecificNFT(call.transaction.hash.toHexString())
@@ -141,3 +135,4 @@ export function handleRobustSwapETHForSpecificNFTs(call: RobustSwapETHForSpecifi
     }
     transaction.save()
 }
+**/

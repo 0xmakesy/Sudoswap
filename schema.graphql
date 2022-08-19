@@ -15,6 +15,7 @@ type NewPair @entity {
   initialSpotPrice: BigInt!
   initialNFTIdInventory: [BigInt!]
   initialInventoryCount: BigInt
+  initialETHLiquidity: BigInt
   pair: Pair @derivedFrom(field:"initialAttributes")
 }
 
@@ -33,6 +34,7 @@ type Pair @entity {
   spotPrice: BigInt
   nftIdInventory: [BigInt!]
   inventoryCount: BigInt
+  ethLiquidity: BigInt
   initialAttributes: NewPair
 }
 
@@ -41,31 +43,6 @@ type ETHPairPrices @entity {
   nftContract: String
   minSpotAsk: BigInt
   maxSpotBid: BigInt
-}
-
-type Swap @entity {
-  id: ID!
-  nft: String
-  pair: String!
-  txHash: String
-  nftIds: String
-  maxCost: BigInt
-  ethPrice: BigInt!
-  approxPairFee: BigInt!
-  approxProtocolFee: BigDecimal!
-  approxPairRevenue: BigDecimal!
-  swapTx: SwapETHForSpecificNFT
-}
-
-type SwapETHForSpecificNFT @entity {
-  id: ID!
-  swaps: [Swap!] @derivedFrom(field: "swapTx")
-  nftCount: Int
-  collectionCount: Int
-  ethRecipient: Bytes
-  nftRecipient: Bytes
-  totalETHSpent: BigInt
-  timestamp: BigInt
 }
 
 type DailyETHPoolStat @entity {
@@ -77,12 +54,15 @@ type DailyETHPoolStat @entity {
   numSwaps: BigInt
   swapVolumeETH: BigInt
   approxPoolFees: BigInt
-  approxProtocolFees: BigDecimal
-  approxPoolRevenue: BigDecimal
+  approxProtocolFees: BigInt
+  approxPoolRevenue: BigInt
+  approxPoolSpent: BigInt
   ethDeposited: BigInt
   ethWithdrawn: BigInt
   nftsDeposited: BigInt
   nftsWithdrawn: BigInt
+  numBuys: BigInt
+  numSells: BigInt
 }
 
 type DailyETHPairStat @entity {
@@ -95,14 +75,17 @@ type DailyETHPairStat @entity {
   numSwaps: BigInt
   swapVolumeETH: BigInt
   approxPairFees: BigInt
-  approxProtocolFees: BigDecimal
-  approxPairRevenue: BigDecimal
+  approxProtocolFees: BigInt
+  approxPairRevenue: BigInt
+  approxPairSpent: BigInt
   ethDeposited: BigInt
   ethWithdrawn: BigInt
   nftsDeposited: BigInt
   nftsWithdrawn: BigInt
   minSpotAsk: BigInt
   maxSpotBid: BigInt
+  numBuys: BigInt
+  numSells: BigInt
 }
 
 type DailyETHProtocolStat @entity {
@@ -112,23 +95,17 @@ type DailyETHProtocolStat @entity {
   numSwaps: BigInt
   swapVolumeETH: BigInt
   approxPoolFees: BigInt
-  approxProtocolFees: BigDecimal
-  approxPoolRevenue: BigDecimal
+  approxProtocolFees: BigInt
+  approxPoolRevenue: BigInt
+  approxPoolSpent: BigInt
   ethDeposited: BigInt
   ethWithdrawn: BigInt
   numPoolsCreated: BigInt
   numPairsCreated: BigInt
   nftsDeposited: BigInt
   nftsWithdrawn: BigInt
-}
-
-type Transfer @entity {
-  id: ID!
-  to: String
-  from: String
-  amount: BigInt
-  tokenContract: String
-  tokenType: String
+  numBuys: BigInt
+  numSells: BigInt
 }
 
 type BondingCurveStatusUpdate @entity {
@@ -164,6 +141,12 @@ type NFTWithdrawal @entity {
   timestamp: BigInt
 }
 
+type NFTDeposit @entity {
+  id: ID!
+  pair: String
+  timestamp: BigInt
+}
+
 type OwnershipTransferred @entity {
   id: ID!
   newOwner: Bytes! # address
@@ -181,30 +164,41 @@ type SpotPriceUpdate @entity {
   timestamp: BigInt
 }
 
-type SwapNFTInPair @entity {
+type ProtocolFeeMultiplier @entity {
   id: ID!
-  ethPaidByPool: BigInt
-  pair: String
-  timestamp: BigInt
+  protocolFeeMultiplier: BigDecimal!
 }
 
-type SwapNFTOutPair @entity {
+type PoolNFTBuys @entity {
   id: ID!
-  ethReceivedByPool: BigInt
-  pair: String
-  timestamp: BigInt
+  ethPaidByPool: BigInt!
+  pair: String!
+  fee: BigInt!
+  protocolFee: BigInt!
+  timestamp: BigInt!
+  nft: String!
+}
+
+type PoolNFTSales @entity {
+  id: ID!
+  ethReceivedByPool: BigInt!
+  pair: String!
+  fee: BigInt!
+  protocolFee: BigInt!
+  timestamp: BigInt!
+  nft: String!
 }
 
 type TokenDeposit @entity {
   id: ID!
-  amount: BigInt! # uint256
+  amountDeposited: BigInt! # uint256
   pair: String
   timestamp: BigInt
 }
 
 type TokenWithdrawal @entity {
   id: ID!
-  amount: BigInt! # uint256
+  amountWithdrawn: BigInt! # uint256
   pair: String
   timestamp: BigInt
 }
