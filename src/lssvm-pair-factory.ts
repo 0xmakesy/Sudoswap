@@ -15,8 +15,7 @@ import {
 } from "../generated/LSSVMPairFactory/LSSVMPairFactory"
 import { NewPair, Pair, DailyETHPairStat, DailyETHPoolStat, DailyETHProtocolStat, BondingCurveStatusUpdate, ProtocolFeeMultiplier, NFTDeposit, TokenDeposit } from "../generated/schema"
 import { LSSVMPairEnumerableETH } from "../generated/templates"
-import { plusBigInt } from "./utilities"
-import { updatePairAttributesIfMissing } from "./lssvm-pair-enumerable-eth"
+import { plusBigInt, updatePairAttributesIfMissing } from "./utilities"
 
 export function handleCreatePairETH(
   event: CreatePairETHCall
@@ -31,7 +30,7 @@ export function handleCreatePairETH(
   newPair.initialAssetRecipient = event.inputs._assetRecipient.toHexString()
   newPair.poolType = BigInt.fromI32(event.inputs._poolType)
   newPair.initialDelta = event.inputs._delta
-  newPair.initialFee = event.inputs._fee
+  newPair.initialFeeMultiplier = event.inputs._fee.toBigDecimal().div(BigDecimal.fromString((Math.pow(10, 18)).toString()))
   newPair.initialSpotPrice = event.inputs._spotPrice
   newPair.initialNFTIdInventory = event.inputs._initialNFTIDs
   newPair.initialInventoryCount = BigInt.fromI32(event.inputs._initialNFTIDs.length)
@@ -58,12 +57,13 @@ export function handleCreatePairETH(
   protocolStats.nftsDeposited = plusBigInt(BigInt.fromI32(event.inputs._initialNFTIDs.length), protocolStats.nftsDeposited)
   protocolStats.numPairsCreated = plusBigInt(BigInt.fromI32(1), protocolStats.numPairsCreated)
   protocolStats.save()
+
   // protocolStats.numPoolsCreated = plusBigInt(BigInt.fromI32(1), protocolStats.numPoolsCreated)
 }
 
 export function handleNewPairEvent(event: NewPairEvent): void {
   LSSVMPairEnumerableETH.create(event.params.poolAddress)
-  let pair = Pair.load(event.transaction.hash.toHexString())
+  let pair = Pair.load(event.params.poolAddress.toHexString())
   if (!pair) {
     pair = new Pair(event.params.poolAddress.toHexString())
   }
@@ -77,21 +77,13 @@ export function handleNewPairEvent(event: NewPairEvent): void {
 
 export function handleBondingCurveStatusUpdate(
   event: BondingCurveStatusUpdateEvent
-): void {
-  let pair = Pair.load(event.address.toHexString())
-  if (pair) {
-    pair.bondingCurveAddress = event.params.bondingCurve.toHexString()
-  }
-  let bondingCurveStatusUpdate = new BondingCurveStatusUpdate(event.transaction.hash.toHexString())
-  bondingCurveStatusUpdate.save()
-}
+): void { }
 
 export function handleNFTDeposit(event: NFTDepositEvent): void {
   let entity = new NFTDeposit(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   )
-  let pair = Pair.load(event.params.poolAddress.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.params.poolAddress.toHexString())!)
   pair.inventoryCount = pair.inventoryCount!.plus(BigInt.fromI32(1))
   entity.timestamp = event.block.timestamp
   entity.pair = event.params.poolAddress.toHexString()
@@ -118,6 +110,9 @@ export function handleNFTDeposit(event: NFTDepositEvent): void {
     dailyPoolStats.nftsDeposited = BigInt.fromI32(0)
   }
   dailyPoolStats.nftsDeposited = plusBigInt(dailyPoolStats.nftsDeposited, BigInt.fromI32(1))
+  dailyETHProtocolStats.save()
+  dailyPairStats.save()
+  dailyPoolStats.save()
 }
 
 export function handleOwnershipTransferred(event: OwnershipTransferred): void { }
@@ -140,8 +135,7 @@ export function handleTokenDeposit(event: TokenDepositEvent): void {
   let entity = new TokenDeposit(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
   )
-  let pair = Pair.load(event.params.poolAddress.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.params.poolAddress.toHexString())!)
   entity.amountDeposited = event.transaction.value
   entity.pair = event.params.poolAddress.toHexString()
   entity.timestamp = event.block.timestamp
@@ -169,4 +163,7 @@ export function handleTokenDeposit(event: TokenDepositEvent): void {
     dailyPoolStats.ethDeposited = BigInt.fromI32(0)
   }
   dailyPoolStats.ethDeposited = plusBigInt(dailyPoolStats.ethDeposited, entity.amountDeposited)
+  dailyETHProtocolStats.save()
+  dailyPairStats.save()
+  dailyPoolStats.save()
 }

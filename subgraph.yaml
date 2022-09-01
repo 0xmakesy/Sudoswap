@@ -23,6 +23,10 @@ dataSources:
         - ProtocolFeeRecipientUpdate
         - RouterStatusUpdate
         - TokenDeposit
+        - Pair
+        - DailyProtocolStat
+        - DailyPoolStat
+        - DailyPairStat
       abis:
         - name: LSSVMPairFactory
           file: ./abis/LSSVMPairFactory.json
@@ -65,12 +69,15 @@ templates:
         - FeeUpdate
         - NFTWithdrawal
         - OwnershipTransferred
-        - SpotPriceUpdate
-        - SwapNFTInPair
-        - SwapNFTOutPair
+        - SpotPrice
+        - PoolNFTBuy
+        - PoolNFTSale
         - TokenDeposit
         - TokenWithdrawal
-        - Transfer
+        - Pair
+        - DailyProtocolStat
+        - DailyPoolStat
+        - DailyPairStat
       abis:
         - name: LSSVMPairEnumerableETH
           file: ./abis/LSSVMPairEnumerableETH.json

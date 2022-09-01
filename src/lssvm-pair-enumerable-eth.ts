@@ -21,15 +21,15 @@ import {
   NFTWithdrawal,
   OwnershipTransferred,
   Pair,
-  PoolNFTBuys,
-  PoolNFTSales,
+  PoolNFTBuy,
+  PoolNFTSale,
   ProtocolFeeMultiplier,
-  SpotPriceUpdate,
+  SpotPrice,
   TokenDeposit,
   TokenWithdrawal
 } from "../generated/schema"
-import { BigInt } from "@graphprotocol/graph-ts";
-import { plusBigInt } from "./utilities"
+import { BigDecimal, BigInt } from "@graphprotocol/graph-ts";
+import { plusBigInt, updatePairAttributesIfMissing } from "./utilities"
 
 export function handleAssetRecipientChange(
   event: AssetRecipientChangeEvent
@@ -41,8 +41,7 @@ export function handleAssetRecipientChange(
   entity.timestamp = event.block.timestamp
   entity.pair = event.address.toHexString()
   entity.save()
-  let pair = Pair.load(event.address.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   if (pair) {
     pair.assetRecipient = event.params.a.toHexString()
     pair.updatedAt = event.block.timestamp
@@ -57,8 +56,7 @@ export function handleDeltaUpdate(event: DeltaUpdateEvent): void {
   entity.timestamp = event.block.timestamp
   entity.pair = event.address.toHexString()
   entity.save()
-  let pair = Pair.load(event.address.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   if (pair) {
     pair.delta = event.params.newDelta
     pair.updatedAt = event.block.timestamp
@@ -73,10 +71,9 @@ export function handleFeeUpdate(event: FeeUpdateEvent): void {
   entity.timestamp = event.block.timestamp
   entity.pair = event.address.toHexString()
   entity.save()
-  let pair = Pair.load(event.address.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   if (pair) {
-    pair.fee = event.params.newFee
+    pair.feeMultiplier = event.params.newFee.toBigDecimal().div(BigDecimal.fromString((Math.pow(10, 18)).toString()))
     pair.updatedAt = event.block.timestamp
     pair.save()
   }
@@ -86,8 +83,7 @@ export function handleNFTWithdrawal(event: NFTWithdrawalEvent): void {
   let entity = new NFTWithdrawal(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   )
-  let pair = Pair.load(event.address.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   pair.inventoryCount = pair.inventoryCount!.minus(BigInt.fromI32(1))
   entity.timestamp = event.block.timestamp
   entity.pair = event.address.toHexString()
@@ -114,6 +110,9 @@ export function handleNFTWithdrawal(event: NFTWithdrawalEvent): void {
     dailyPoolStats.nftsWithdrawn = BigInt.fromI32(0)
   }
   dailyPoolStats.nftsWithdrawn = plusBigInt(dailyPoolStats.nftsWithdrawn, BigInt.fromI32(1))
+  dailyETHProtocolStats.save()
+  dailyPairStats.save()
+  dailyPoolStats.save()
 }
 
 export function handleOwnershipTransferred(
@@ -126,8 +125,7 @@ export function handleOwnershipTransferred(
   entity.pair = event.address.toHexString()
   entity.timestamp = event.block.timestamp
   entity.save()
-  let pair = Pair.load(event.address.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   if (pair) {
     pair.owner = event.params.newOwner.toHexString()
     pair.updatedAt = event.block.timestamp
@@ -136,15 +134,14 @@ export function handleOwnershipTransferred(
 }
 
 export function handleSpotPriceUpdate(event: SpotPriceUpdateEvent): void {
-  let entity = new SpotPriceUpdate(
+  let entity = new SpotPrice(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   )
   entity.newSpotPrice = event.params.newSpotPrice
   entity.updateTx = event.transaction.hash.toHexString()
   entity.pair = event.address.toHexString()
   entity.timestamp = event.block.timestamp
-  let pair = Pair.load(event.address.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   if (pair) {
     pair.spotPrice = event.params.newSpotPrice
     pair.updatedAt = event.block.timestamp
@@ -155,14 +152,13 @@ export function handleSpotPriceUpdate(event: SpotPriceUpdateEvent): void {
 }
 
 export function handleSwapNFTInPair(event: SwapNFTInPairEvent): void {
-  let entity = new PoolNFTBuys(
+  let entity = new PoolNFTBuy(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
   )
-  let pair = Pair.load(event.address.toHexString())!
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   let protocolFeeMultiplier = ProtocolFeeMultiplier.load("current")!.protocolFeeMultiplier
-  updatePairAttributesIfMissing(pair)
   pair.inventoryCount = pair.inventoryCount!.plus(BigInt.fromI32(1))
-  entity.fee = pair.fee!
+  entity.fee = BigInt.fromString(pair.feeMultiplier!.times(pair.spotPrice!.toBigDecimal()).toString().split('.')[0])
   entity.pair = event.address.toHexString()
   entity.protocolFee = BigInt.fromString(protocolFeeMultiplier.times(pair.spotPrice!.toBigDecimal()).toString().split('.')[0])
   entity.ethPaidByPool = pair.spotPrice!
@@ -177,7 +173,7 @@ export function handleSwapNFTInPair(event: SwapNFTInPairEvent): void {
   dailyETHProtocolStats.swapVolumeETH = plusBigInt(pair.spotPrice!, dailyETHProtocolStats.swapVolumeETH)
   dailyETHProtocolStats.approxProtocolFees = plusBigInt(dailyETHProtocolStats.approxProtocolFees, entity.protocolFee)
   dailyETHProtocolStats.numSwaps = plusBigInt(dailyETHProtocolStats.numSwaps, BigInt.fromI32(1))
-  dailyETHProtocolStats.numSells = plusBigInt(dailyETHProtocolStats.numSells, BigInt.fromI32(1))
+  dailyETHProtocolStats.numUserSells = plusBigInt(dailyETHProtocolStats.numUserSells, BigInt.fromI32(1))
   dailyETHProtocolStats.approxPoolFees = plusBigInt(dailyETHProtocolStats.approxPoolFees, entity.fee)
 
 
@@ -190,7 +186,7 @@ export function handleSwapNFTInPair(event: SwapNFTInPairEvent): void {
   dailyPairStats.pair = entity.pair
   dailyPairStats.nftContract = pair.nft
   dailyPairStats.numSwaps = plusBigInt(dailyPairStats.numSwaps, BigInt.fromI32(1))
-  dailyPairStats.numSells = plusBigInt(dailyPairStats.numSells, BigInt.fromI32(1))
+  dailyPairStats.numUserSells = plusBigInt(dailyPairStats.numUserSells, BigInt.fromI32(1))
   dailyPairStats.swapVolumeETH = plusBigInt(dailyPairStats.swapVolumeETH, pair.spotPrice)
   dailyPairStats.approxPairFees = plusBigInt(dailyPairStats.approxPairFees, entity.fee)
   dailyPairStats.approxProtocolFees = plusBigInt(dailyPairStats.approxProtocolFees, entity.protocolFee)
@@ -204,6 +200,7 @@ export function handleSwapNFTInPair(event: SwapNFTInPairEvent): void {
   dailyPoolStats.dayString = dayString
   dailyPoolStats.nftContract = pair.nft
   dailyPoolStats.numSwaps = plusBigInt(dailyPoolStats.numSwaps, BigInt.fromI32(1))
+  dailyPoolStats.numUserSells = plusBigInt(dailyPoolStats.numUserSells, BigInt.fromI32(1))
   dailyPoolStats.swapVolumeETH = plusBigInt(dailyPoolStats.swapVolumeETH, pair.spotPrice)
   dailyPoolStats.approxPoolFees = plusBigInt(dailyPoolStats.approxPoolFees, entity.fee)
   dailyPoolStats.approxProtocolFees = plusBigInt(dailyPoolStats.approxProtocolFees, entity.protocolFee)
@@ -218,14 +215,13 @@ export function handleSwapNFTInPair(event: SwapNFTInPairEvent): void {
 }
 
 export function handleSwapNFTOutPair(event: SwapNFTOutPairEvent): void {
-  let entity = new PoolNFTSales(
+  let entity = new PoolNFTSale(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
   )
-  let pair = Pair.load(event.address.toHexString())!
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   let protocolFeeMultiplier = ProtocolFeeMultiplier.load("current")!
-  updatePairAttributesIfMissing(pair)
   pair.inventoryCount = pair.inventoryCount!.minus(BigInt.fromI32(1))
-  entity.fee = pair.fee!
+  entity.fee = BigInt.fromString(pair.feeMultiplier!.times(pair.spotPrice!.toBigDecimal()).toString().split('.')[0])
   entity.pair = event.address.toHexString()
   entity.protocolFee = BigInt.fromString(protocolFeeMultiplier.protocolFeeMultiplier.times(pair.spotPrice!.toBigDecimal()).toString().split('.')[0])
   entity.ethReceivedByPool = pair.spotPrice!.minus(entity.protocolFee)
@@ -240,7 +236,7 @@ export function handleSwapNFTOutPair(event: SwapNFTOutPairEvent): void {
   dailyETHProtocolStats.swapVolumeETH = plusBigInt(pair.spotPrice!, dailyETHProtocolStats.swapVolumeETH)
   dailyETHProtocolStats.approxProtocolFees = plusBigInt(dailyETHProtocolStats.approxProtocolFees, entity.protocolFee)
   dailyETHProtocolStats.numSwaps = plusBigInt(dailyETHProtocolStats.numSwaps, BigInt.fromI32(1))
-  dailyETHProtocolStats.numBuys = plusBigInt(dailyETHProtocolStats.numBuys, BigInt.fromI32(1))
+  dailyETHProtocolStats.numUserBuys = plusBigInt(dailyETHProtocolStats.numUserBuys, BigInt.fromI32(1))
   dailyETHProtocolStats.approxPoolFees = plusBigInt(dailyETHProtocolStats.approxPoolFees, entity.fee)
 
 
@@ -253,7 +249,7 @@ export function handleSwapNFTOutPair(event: SwapNFTOutPairEvent): void {
   dailyPairStats.pair = entity.pair
   dailyPairStats.nftContract = pair.nft
   dailyPairStats.numSwaps = plusBigInt(dailyPairStats.numSwaps, BigInt.fromI32(1))
-  dailyPairStats.numSells = plusBigInt(dailyPairStats.numSells, BigInt.fromI32(1))
+  dailyPairStats.numUserBuys = plusBigInt(dailyPairStats.numUserBuys, BigInt.fromI32(1))
   dailyPairStats.swapVolumeETH = plusBigInt(dailyPairStats.swapVolumeETH, pair.spotPrice)
   dailyPairStats.approxPairFees = plusBigInt(dailyPairStats.approxPairFees, entity.fee)
   dailyPairStats.approxProtocolFees = plusBigInt(dailyPairStats.approxProtocolFees, entity.protocolFee)
@@ -266,6 +262,7 @@ export function handleSwapNFTOutPair(event: SwapNFTOutPairEvent): void {
   dailyPoolStats.dayString = dayString
   dailyPoolStats.nftContract = pair.nft
   dailyPoolStats.numSwaps = plusBigInt(dailyPoolStats.numSwaps, BigInt.fromI32(1))
+  dailyPoolStats.numUserBuys = plusBigInt(dailyPoolStats.numUserBuys, BigInt.fromI32(1))
   dailyPoolStats.swapVolumeETH = plusBigInt(dailyPoolStats.swapVolumeETH, pair.spotPrice)
   dailyPoolStats.approxPoolFees = plusBigInt(dailyPoolStats.approxPoolFees, entity.fee)
   dailyPoolStats.approxProtocolFees = plusBigInt(dailyPoolStats.approxProtocolFees, entity.protocolFee)
@@ -285,8 +282,7 @@ export function handleTokenDeposit(
   let entity = new TokenDeposit(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
   )
-  let pair = Pair.load(event.address.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   entity.amountDeposited = event.params.amount
   entity.pair = event.address.toHexString()
   entity.timestamp = event.block.timestamp
@@ -314,14 +310,16 @@ export function handleTokenDeposit(
     dailyPoolStats.ethDeposited = BigInt.fromI32(0)
   }
   dailyPoolStats.ethDeposited = plusBigInt(dailyPoolStats.ethDeposited, entity.amountDeposited)
+  dailyETHProtocolStats.save()
+  dailyPairStats.save()
+  dailyPoolStats.save()
 }
 
 export function handleTokenWithdrawal(event: TokenWithdrawalEvent): void {
   let entity = new TokenWithdrawal(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
   )
-  let pair = Pair.load(event.address.toHexString())!
-  updatePairAttributesIfMissing(pair)
+  let pair = updatePairAttributesIfMissing(Pair.load(event.address.toHexString())!)
   entity.amountWithdrawn = event.params.amount
   entity.pair = event.address.toHexString()
   entity.timestamp = event.block.timestamp
@@ -349,21 +347,7 @@ export function handleTokenWithdrawal(event: TokenWithdrawalEvent): void {
     dailyPoolStats.ethWithdrawn = BigInt.fromI32(0)
   }
   dailyPoolStats.ethWithdrawn = plusBigInt(dailyPoolStats.ethWithdrawn, entity.amountWithdrawn)
-}
-
-export function updatePairAttributesIfMissing(pair: Pair): void {
-  if (!pair.spotPrice) {
-    let newPair = NewPair.load(pair.createdTx!)!
-    pair.assetRecipient = pair.assetRecipient || newPair.initialAssetRecipient
-    pair.bondingCurveAddress = pair.bondingCurveAddress || newPair.initialBondingCurveAddress
-    pair.delta = pair.delta || newPair.initialDelta
-    pair.fee = pair.fee || newPair.initialFee
-    pair.inventoryCount = pair.inventoryCount || newPair.initialInventoryCount
-    pair.nft = pair.nft || newPair.nft
-    pair.owner = pair.owner || newPair.owner
-    pair.poolType = pair.poolType || newPair.poolType
-    pair.spotPrice = pair.spotPrice || newPair.initialSpotPrice
-    pair.ethLiquidity = pair.ethLiquidity || newPair.initialETHLiquidity
-    pair.save()
-  }
+  dailyETHProtocolStats.save()
+  dailyPairStats.save()
+  dailyPoolStats.save()
 }

@@ -11,7 +11,7 @@ type NewPair @entity {
   initialAssetRecipient: String
   poolType: BigInt
   initialDelta: BigInt
-  initialFee: BigInt
+  initialFeeMultiplier: BigDecimal
   initialSpotPrice: BigInt!
   initialNFTIdInventory: [BigInt!]
   initialInventoryCount: BigInt
@@ -30,19 +30,12 @@ type Pair @entity {
   assetRecipient: String
   poolType: BigInt
   delta: BigInt
-  fee: BigInt
+  feeMultiplier: BigDecimal
   spotPrice: BigInt
   nftIdInventory: [BigInt!]
   inventoryCount: BigInt
   ethLiquidity: BigInt
   initialAttributes: NewPair
-}
-
-type ETHPairPrices @entity {
-  id: ID!
-  nftContract: String
-  minSpotAsk: BigInt
-  maxSpotBid: BigInt
 }
 
 type DailyETHPoolStat @entity {
@@ -61,8 +54,8 @@ type DailyETHPoolStat @entity {
   ethWithdrawn: BigInt
   nftsDeposited: BigInt
   nftsWithdrawn: BigInt
-  numBuys: BigInt
-  numSells: BigInt
+  numUserBuys: BigInt
+  numUserSells: BigInt
 }
 
 type DailyETHPairStat @entity {
@@ -84,8 +77,8 @@ type DailyETHPairStat @entity {
   nftsWithdrawn: BigInt
   minSpotAsk: BigInt
   maxSpotBid: BigInt
-  numBuys: BigInt
-  numSells: BigInt
+  numUserBuys: BigInt
+  numUserSells: BigInt
 }
 
 type DailyETHProtocolStat @entity {
@@ -104,8 +97,8 @@ type DailyETHProtocolStat @entity {
   numPairsCreated: BigInt
   nftsDeposited: BigInt
   nftsWithdrawn: BigInt
-  numBuys: BigInt
-  numSells: BigInt
+  numUserBuys: BigInt
+  numUserSells: BigInt
 }
 
 type BondingCurveStatusUpdate @entity {
@@ -154,7 +147,7 @@ type OwnershipTransferred @entity {
   timestamp: BigInt
 }
 
-type SpotPriceUpdate @entity {
+type SpotPrice @entity {
   id: ID!
   newSpotPrice: BigInt! # uint128
   updateTx: String
@@ -169,7 +162,7 @@ type ProtocolFeeMultiplier @entity {
   protocolFeeMultiplier: BigDecimal!
 }
 
-type PoolNFTBuys @entity {
+type PoolNFTBuy @entity {
   id: ID!
   ethPaidByPool: BigInt!
   pair: String!
@@ -179,7 +172,7 @@ type PoolNFTBuys @entity {
   nft: String!
 }
 
-type PoolNFTSales @entity {
+type PoolNFTSale @entity {
   id: ID!
   ethReceivedByPool: BigInt!
   pair: String!

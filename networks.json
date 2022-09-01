@@ -8,6 +8,12 @@
     },
     "LSSVMRouter": {
       "address": "0x2B2e8cDA09bBA9660dCA5cB6233787738Ad68329"
+    },
+    "Contract": {
+      "address": "0xCd80C916B1194beB48aBF007D0b79a7238436D56"
+    },
+    "LSSVMPairMissingEnumerableETH": {
+      "address": "0xCd80C916B1194beB48aBF007D0b79a7238436D56"
     }
   }
 }
